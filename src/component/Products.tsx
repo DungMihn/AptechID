@@ -99,13 +99,13 @@ const Products: React.FC = () => {
     setEditingProduct(product || null);
     setIsModalOpen(true);
     console.log(product?.images)
-    // Set giá trị form
+    
     form.setFieldsValue({
       title: product?.title || "",
       price: product?.price || "",
       description: product?.description || "",
       categoryId: product?.category.id || "",
-      images: product?.images // Gán chuỗi URL trực tiếp, không có dấu [] hay ""
+      images: product?.images 
     });
   };
 

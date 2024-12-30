@@ -7,7 +7,7 @@ import {
   MenuFoldOutlined,
   MenuUnfoldOutlined,
 } from "@ant-design/icons";
-import Products from "../component/Products"; // Nhập component Products
+import Products from "../component/Products"; 
 import type { MenuProps } from "antd"; 
 
 const { Sider, Header, Content } = Layout;
@@ -22,24 +22,23 @@ const items: MenuItem[] = [
 
 const Dashboard: React.FC = () => {
   const [collapsed, setCollapsed] = useState(false); 
-  const [selectedMenu, setSelectedMenu] = useState("1"); // State để quản lý menu đã chọn
-
+  const [selectedMenu, setSelectedMenu] = useState("1"); 
   const toggleCollapsed = () => {
     setCollapsed(!collapsed); 
   };
 
   const handleMenuClick = (key: string) => {
-    setSelectedMenu(key); // Cập nhật menu đã chọn
+    setSelectedMenu(key); 
   };
 
   return (
-    <Layout style={{ height: "maxheight" }}>
+    <Layout style={{ height: "150vh" }}>
       <Sider collapsible collapsed={collapsed} onCollapse={toggleCollapsed}>
         <Menu
           theme="dark"
           mode="inline"
           selectedKeys={[selectedMenu]}
-          onClick={(e) => handleMenuClick(e.key)} // Thay đổi menu khi người dùng chọn
+          onClick={(e) => handleMenuClick(e.key)}
           inlineCollapsed={collapsed}
           items={items}
         />
@@ -68,7 +67,7 @@ const Dashboard: React.FC = () => {
             <a
               href="/"
               onClick={() => {
-                localStorage.removeItem("token"); // Xóa token
+                localStorage.removeItem("token"); 
               }}
             >
               Đăng xuất
@@ -83,10 +82,8 @@ const Dashboard: React.FC = () => {
           }}
         >
           <h1>Dashboard Login - Dũng Mihn</h1>
-
-          {/* Điều kiện hiển thị phần nội dung */}
           {selectedMenu === "1" && <div>Welcome to the Dashboard!</div>}
-          {selectedMenu === "2" && <Products />} {/* Hiển thị Products nếu chọn mục này */}
+          {selectedMenu === "2" && <Products />} 
           {selectedMenu === "3" && <div>Orders</div>}
         </Content>
       </Layout>

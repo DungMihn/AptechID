@@ -13,7 +13,6 @@ return (
       <Router>
         <Routes>
           <Route path="/" element={<Login />} />
-          {/* Bảo vệ các route */}
           <Route
             path="/dashboard"
             element={
