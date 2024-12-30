@@ -117,8 +117,8 @@ const Products: React.FC = () => {
     if (product?.images?.some((img) => typeof img === "string" && img.includes("["))) {
       console.log("Dữ liệu img bị lỗi:", product.images);
       notification.error({
-        message: "Dữ liệu img bị lỗi",
-        description: "Vui lòng kiểm tra lại dữ liệu hình ảnh.",
+        message: "Dữ liệu img bị lỗi trước đó do trước đó, sẽ làm sạch sau",
+        description: "Không thể cập nhật được, Anh thử các dữ liệu img không bị lỗi thì cập nhật bình thường",
       });
       // return; // Dừng nếu phát hiện lỗi
     }
