@@ -98,14 +98,14 @@ const Products: React.FC = () => {
   const openModal = (product?: Product) => {
     setEditingProduct(product || null);
     setIsModalOpen(true);
-
-    // Set giá trị form
+    console.log(product?.images)
+    
     form.setFieldsValue({
       title: product?.title || "",
       price: product?.price || "",
       description: product?.description || "",
       categoryId: product?.category.id || "",
-      images: product?.images?.[0] || "", 
+      images: product?.images 
     });
   };
 
