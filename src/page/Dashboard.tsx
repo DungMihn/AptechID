@@ -33,7 +33,7 @@ const Dashboard: React.FC = () => {
   };
 
   return (
-    <Layout style={{ height: "100vh" }}>
+    <Layout style={{ height: "maxheight" }}>
       <Sider collapsible collapsed={collapsed} onCollapse={toggleCollapsed}>
         <Menu
           theme="dark"
@@ -63,7 +63,17 @@ const Dashboard: React.FC = () => {
           >
             {collapsed ? <MenuUnfoldOutlined /> : <MenuFoldOutlined />}
           </Button>
-          <span> <strong>dungminh2505@gmail.com</strong> | <a href="/">Đăng xuất</a></span>
+          <span>
+            <strong>dungminh2505@gmail.com</strong> |{" "}
+            <a
+              href="/"
+              onClick={() => {
+                localStorage.removeItem("token"); // Xóa token
+              }}
+            >
+              Đăng xuất
+            </a>
+          </span>
         </Header>
 
         <Content

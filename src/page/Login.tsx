@@ -7,8 +7,7 @@ const Login: React.FC = () => {
   const navigate = useNavigate();
 
   const onFinish = async (values: { email: string; password: string }) => {
-    try {
-      
+  try {
       const response = await axios.post(
         "https://api.escuelajs.co/api/v1/auth/login",
         {
@@ -21,7 +20,10 @@ const Login: React.FC = () => {
           },
         }
       );
-      console.log("Server response:", response.data); 
+  
+      // Lưu token vào localStorage
+      localStorage.setItem("token", response.data.access_token);
+  
       message.success("Đăng nhập thành công!");
       navigate("/dashboard");
     } catch (error: any) {
@@ -37,6 +39,7 @@ const Login: React.FC = () => {
       }
     }
   };
+  
 
   return (
     <div style={{ maxWidth: 400, margin: "50px auto" }}>
