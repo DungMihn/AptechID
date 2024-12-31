@@ -1,5 +1,5 @@
-import React, { useState } from "react";
-import { Table, Button, Space, notification, Modal, Form, Input } from "antd";
+import React, { useState, useEffect } from "react";
+import { Table, Button, Space, notification, Modal, Form, Input, Select } from "antd";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import axios from "axios";
 import Filter from "./Filter"; // Tách riêng bộ lọc
@@ -39,10 +39,29 @@ const Products: React.FC = () => {
   const queryClient = useQueryClient();
 
   const [filters, setFilters] = useState<{ title?: string; categoryId?: number; price_min?: number; price_max?: number }>({});
+  const [categories, setCategories] = useState<{ id: number; name: string }[]>([]);
+  const [isCategoriesLoading, setIsCategoriesLoading] = useState(true);
   const { data, isLoading } = useQuery({
     queryKey: ["products", currentPage, filters],
     queryFn: () => fetchProducts(filters, (currentPage - 1) * 10),
   });
+
+  // Hàm lấy danh mục
+  const fetchCategories = async () => {
+    try {
+      setIsCategoriesLoading(true);
+      const response = await axios.get("https://api.escuelajs.co/api/v1/categories");
+      setCategories(response.data);
+    } catch (error) {
+      notification.error({ message: "Lỗi khi lấy danh mục" });
+    } finally {
+      setIsCategoriesLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchCategories();
+  }, []);
 
   const addMutation = useMutation({
     mutationFn: (newProduct: Omit<Product, "id" | "category"> & { categoryId: number }) =>
@@ -102,6 +121,9 @@ const Products: React.FC = () => {
     editForm.setFieldsValue({
       title: product.title,
       price: product.price,
+      description: product?.description || "",
+      categoryId: product?.category.id || "",
+      images: product?.images,
     });
     setIsEditModalOpen(true);
   };
@@ -177,11 +199,18 @@ const Products: React.FC = () => {
             <Input />
           </Form.Item>
           <Form.Item
-            label="Category ID"
+            label="Danh mục"
             name="categoryId"
-            rules={[{ required: true, message: "Please enter the category ID" }]}
+            rules={[{ required: true, message: "Vui lòng chọn danh mục" }]}
           >
-            <Input type="number" />
+            <Select
+              placeholder="Chọn danh mục"
+              loading={isCategoriesLoading}
+              options={categories.map((category) => ({
+                value: category.id,
+                label: category.name,
+              }))}
+            />
           </Form.Item>
           <Form.Item
             label="Image URL"
@@ -215,6 +244,35 @@ const Products: React.FC = () => {
           >
             <Input type="number" />
           </Form.Item>
+          <Form.Item
+            label="Description"
+            name="description"
+            rules={[{ required: true, message: "Please enter the product description" }]}
+          >
+            <Input />
+          </Form.Item>
+          <Form.Item
+            label="Danh mục"
+            name="categoryId"
+            rules={[{ required: true, message: "Vui lòng chọn danh mục" }]}
+          >
+            <Select
+              placeholder="Chọn danh mục"
+              loading={isCategoriesLoading}
+              options={categories.map((category) => ({
+                value: category.id,
+                label: category.name,
+              }))}
+            />
+          </Form.Item>
+          <Form.Item
+            label="Image URL"
+            name="images"
+            rules={[{ required: true, message: "Please enter an image URL" }]}
+          >
+            <Input />
+          </Form.Item>
+          
         </Form>
       </Modal>
     </div>
