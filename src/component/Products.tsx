@@ -2,7 +2,6 @@ import React, { useState } from "react";
 import { Table, Button, Space, notification, Modal, Form, Input } from "antd";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import axios from "axios";
-import Filter from "./Filter"; // Tách riêng bộ lọc
 
 type Product = {
   id: number;
@@ -17,105 +16,85 @@ type Product = {
   images: string[];
 };
 
-
-const fetchProducts = async (filters: { title?: string; categoryId?: number; price_min?: number; price_max?: number }, offset: number): Promise<{ products: Product[]; total: number }> => {
-  const params = new URLSearchParams({ offset: offset.toString(), limit: "10" });
-  if (filters.title) params.append("title", filters.title);
-  if (filters.categoryId) params.append("categoryId", filters.categoryId.toString());
-  if (filters.price_min) params.append("price_min", filters.price_min.toString());
-  if (filters.price_max) params.append("price_max", filters.price_max.toString());
-
-  const response = await axios.get(`https://api.escuelajs.co/api/v1/products?${params.toString()}`);
+const fetchProducts = async (offset: number): Promise<{ products: Product[]; total: number }> => {
+  const response = await axios.get(`https://api.escuelajs.co/api/v1/products?offset=${offset}&limit=10`);
   return { products: response.data, total: 200 };
 };
 
 const Products: React.FC = () => {
   const [currentPage, setCurrentPage] = useState(1);
-  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
-  const [form] = Form.useForm();
+  const [addForm] = Form.useForm();
+  const [editForm] = Form.useForm();
   const queryClient = useQueryClient();
 
-  const [filters, setFilters] = useState<{ title?: string; categoryId?: number; price_min?: number; price_max?: number }>({});
   const { data, isLoading } = useQuery({
-    queryKey: ["products", currentPage, filters],
-    queryFn: () => fetchProducts(filters, (currentPage - 1) * 10),
+    queryKey: ["products", currentPage],
+    queryFn: () => fetchProducts((currentPage - 1) * 10),
+  });
+
+  const addMutation = useMutation({
+    mutationFn: (newProduct: Omit<Product, "id" | "category"> & { categoryId: number }) =>
+      axios.post("https://api.escuelajs.co/api/v1/products", {
+        ...newProduct,
+        images: [newProduct.images[0]],
+      }),
+    onSuccess: () => {
+      notification.success({ message: "Product added successfully" });
+      queryClient.invalidateQueries({ queryKey: ["products"] });
+      setIsAddModalOpen(false);
+      addForm.resetFields();
+    },
   });
 
   const updateMutation = useMutation({
-    mutationFn: (updatedProduct: Partial<Product> & { id: number }) =>
+    mutationFn: (updatedProduct: { id: number; title: string; price: number }) =>
       axios.put(`https://api.escuelajs.co/api/v1/products/${updatedProduct.id}`, updatedProduct),
     onSuccess: () => {
       notification.success({ message: "Product updated successfully" });
       queryClient.invalidateQueries({ queryKey: ["products"] });
-      setIsModalOpen(false);
-      form.resetFields();
+      setIsEditModalOpen(false);
+      editForm.resetFields();
     },
   });
 
   const deleteMutation = useMutation({
-    mutationFn: (id: number) =>
-      axios.delete(`https://api.escuelajs.co/api/v1/products/${id}`),
+    mutationFn: (id: number) => axios.delete(`https://api.escuelajs.co/api/v1/products/${id}`),
     onSuccess: () => {
       notification.success({ message: "Product deleted successfully" });
       queryClient.invalidateQueries({ queryKey: ["products"] });
     },
   });
 
-  const addMutation = useMutation({
-    mutationFn: (newProduct: Omit<Product, "id" | "category"> & { categoryId: number }) =>
-      axios.post("https://api.escuelajs.co/api/v1/products/", {
-        ...newProduct,
-        images: [newProduct.images[0]], 
-      }),
-    onSuccess: () => {
-      notification.success({ message: "Product added successfully" });
-      queryClient.invalidateQueries({ queryKey: ["products"] });
-      setIsModalOpen(false);
-      form.resetFields();
-    },
-    onError: (error) => {
-      notification.error({
-        message: "Failed to add product",
-        description: (error as any).response?.data?.message || "An unexpected error occurred",
-      });
-    },
-  });
+  const handleAddSubmit = (values: any) => {
+    addMutation.mutate({
+      ...values,
+      description: values.description,
+      categoryId: values.categoryId,
+      images: [values.images],
+    });
+  };
 
-  const handleSubmit = (values: Omit<Product, "id" | "category"> & { categoryId: number }) => {
+  const handleEditSubmit = (values: { title: string; price: number }) => {
     if (editingProduct) {
-      updateMutation.mutate({ ...values, id: editingProduct.id });
-    } else {
-      const formattedValues = {
-        ...values,
-        images: Array.isArray(values.images) ? values.images : [values.images], 
-      };
-      addMutation.mutate(formattedValues);
+      updateMutation.mutate({
+        id: editingProduct.id,
+        title: values.title,
+        price: values.price,
+      });
     }
   };
 
-  const openModal = (product?: Product) => {
-    setEditingProduct(product || null);
-    setIsModalOpen(true);
-  
-    // Kiểm tra nếu images chứa '['
-    if (product?.images?.some((img) => typeof img === "string" && img.includes("["))) {
-      console.log("Dữ liệu img bị lỗi:", product.images);
-      notification.error({
-        message: "Dữ liệu img bị lỗi trước đó do trước đó, sẽ làm sạch sau",
-        description: "Không thể cập nhật được, Anh thử các dữ liệu img không bị lỗi thì cập nhật bình thường",
-      });
-      // return; // Dừng nếu phát hiện lỗi, bỏ phần này
-    }
-    
-      form.setFieldsValue({
-        title: product?.title || "",
-        price: product?.price || "",
-        description: product?.description || "",
-        categoryId: product?.category.id || "",
-        images: product?.images,
-      });
-    };
+  const openEditModal = (product: Product) => {
+    setEditingProduct(product);
+    editForm.setFieldsValue({
+      title: product.title,
+      price: product.price,
+    });
+    setIsEditModalOpen(true);
+  };
 
   const columns = [
     { title: "Title", dataIndex: "title", key: "title" },
@@ -126,30 +105,18 @@ const Products: React.FC = () => {
       key: "actions",
       render: (_: unknown, record: Product) => (
         <Space>
-          <Button onClick={() => openModal(record)}>Edit</Button>
+          <Button onClick={() => openEditModal(record)}>Edit</Button>
           <Button danger onClick={() => deleteMutation.mutate(record.id)}>Delete</Button>
         </Space>
       ),
     },
   ];
 
-  const handleFilterChange = (changedFilters: Partial<typeof filters>) => {
-    setFilters((prev) => ({ ...prev, ...changedFilters }));
-    setCurrentPage(1);
-  };
-
   return (
     <div>
-      <Filter onFilterChange={handleFilterChange} />
-      
-      <Button
-        type="primary"
-        onClick={() => openModal()}
-        style={{ marginBottom: 20 }}
-      >
+      <Button type="primary" onClick={() => setIsAddModalOpen(true)} style={{ marginBottom: 20 }}>
         Add Product
       </Button>
-      
       <Table
         columns={columns}
         dataSource={data?.products || []}
@@ -163,13 +130,14 @@ const Products: React.FC = () => {
         loading={isLoading}
       />
 
+      {/* Add Modal */}
       <Modal
         title="Add Product"
-        open={isModalOpen}
-        onCancel={() => setIsModalOpen(false)}
-        onOk={() => form.submit()}
+        open={isAddModalOpen}
+        onCancel={() => setIsAddModalOpen(false)}
+        onOk={() => addForm.submit()}
       >
-        <Form form={form} onFinish={handleSubmit} layout="vertical">
+        <Form form={addForm} onFinish={handleAddSubmit} layout="vertical">
           <Form.Item
             label="Title"
             name="title"
@@ -204,6 +172,31 @@ const Products: React.FC = () => {
             rules={[{ required: true, message: "Please enter an image URL" }]}
           >
             <Input />
+          </Form.Item>
+        </Form>
+      </Modal>
+
+      {/* Edit Modal */}
+      <Modal
+        title="Edit Product"
+        open={isEditModalOpen}
+        onCancel={() => setIsEditModalOpen(false)}
+        onOk={() => editForm.submit()}
+      >
+        <Form form={editForm} onFinish={handleEditSubmit} layout="vertical">
+          <Form.Item
+            label="Title"
+            name="title"
+            rules={[{ required: true, message: "Please enter the product title" }]}
+          >
+            <Input />
+          </Form.Item>
+          <Form.Item
+            label="Price"
+            name="price"
+            rules={[{ required: true, message: "Please enter the product price" }]}
+          >
+            <Input type="number" />
           </Form.Item>
         </Form>
       </Modal>
