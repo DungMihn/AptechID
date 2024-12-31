@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import { Table, Button, Space, notification, Modal, Form, Input } from "antd";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import axios from "axios";
+import Filter from "./Filter"; // Tách riêng bộ lọc
 
 type Product = {
   id: number;
@@ -15,6 +16,7 @@ type Product = {
   };
   images: string[];
 };
+
 
 const fetchProducts = async (filters: { title?: string; categoryId?: number; price_min?: number; price_max?: number }, offset: number): Promise<{ products: Product[]; total: number }> => {
   const params = new URLSearchParams({ offset: offset.toString(), limit: "10" });
@@ -42,10 +44,7 @@ const Products: React.FC = () => {
 
   const updateMutation = useMutation({
     mutationFn: (updatedProduct: Partial<Product> & { id: number }) =>
-      axios.put(
-        `https://api.escuelajs.co/api/v1/products/${updatedProduct.id}`,
-        updatedProduct
-      ),
+      axios.put(`https://api.escuelajs.co/api/v1/products/${updatedProduct.id}`, updatedProduct),
     onSuccess: () => {
       notification.success({ message: "Product updated successfully" });
       queryClient.invalidateQueries({ queryKey: ["products"] });
@@ -53,6 +52,7 @@ const Products: React.FC = () => {
       form.resetFields();
     },
   });
+
   const deleteMutation = useMutation({
     mutationFn: (id: number) =>
       axios.delete(`https://api.escuelajs.co/api/v1/products/${id}`),
@@ -83,7 +83,6 @@ const Products: React.FC = () => {
   });
 
   const handleSubmit = (values: Omit<Product, "id" | "category"> & { categoryId: number }) => {
-   
     if (editingProduct) {
       updateMutation.mutate({ ...values, id: editingProduct.id });
     } else {
@@ -94,20 +93,6 @@ const Products: React.FC = () => {
       addMutation.mutate(formattedValues);
     }
   };
-
-  // const openModal = (product?: Product) => {
-  //   setEditingProduct(product || null);
-  //   setIsModalOpen(true);
-  //   console.log(product?.images)
-    
-  //   form.setFieldsValue({
-  //     title: product?.title || "",
-  //     price: product?.price || "",
-  //     description: product?.description || "",
-  //     categoryId: product?.category.id || "",
-  //     images: product?.images 
-  //   });
-  // };
 
   const openModal = (product?: Product) => {
     setEditingProduct(product || null);
@@ -120,7 +105,7 @@ const Products: React.FC = () => {
         message: "Dữ liệu img bị lỗi trước đó do trước đó, sẽ làm sạch sau",
         description: "Không thể cập nhật được, Anh thử các dữ liệu img không bị lỗi thì cập nhật bình thường",
       });
-      // return; // Dừng nếu phát hiện lỗi
+      // return; // Dừng nếu phát hiện lỗi, bỏ phần này
     }
     
       form.setFieldsValue({
@@ -131,7 +116,6 @@ const Products: React.FC = () => {
         images: product?.images,
       });
     };
-  
 
   const columns = [
     { title: "Title", dataIndex: "title", key: "title" },
@@ -156,32 +140,8 @@ const Products: React.FC = () => {
 
   return (
     <div>
-      <div style={{ marginBottom: 20 }}>
-        <Input
-          placeholder="Search by title"
-          onChange={(e) => handleFilterChange({ title: e.target.value })}
-          style={{ width: 200, marginRight: 10 }}
-        />
-        <Input
-          placeholder="Category ID"
-          type="number"
-          onChange={(e) => handleFilterChange({ categoryId: Number(e.target.value) })}
-          style={{ width: 200, marginRight: 10 }}
-        />
-        <Input
-          placeholder="Min Price"
-          type="number"
-          onChange={(e) => handleFilterChange({ price_min: Number(e.target.value) })}
-          style={{ width: 200, marginRight: 10 }}
-        />
-        <Input
-          placeholder="Max Price"
-          type="number"
-          onChange={(e) => handleFilterChange({ price_max: Number(e.target.value) })}
-          style={{ width: 200 }}
-        />
-      </div>
-
+      <Filter onFilterChange={handleFilterChange} />
+      
       <Button
         type="primary"
         onClick={() => openModal()}
@@ -189,6 +149,7 @@ const Products: React.FC = () => {
       >
         Add Product
       </Button>
+      
       <Table
         columns={columns}
         dataSource={data?.products || []}

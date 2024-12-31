@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import { Layout, Menu, Button } from "antd";
+import { Link, Outlet } from "react-router-dom";
 import {
   ContainerOutlined,
   DesktopOutlined,
@@ -7,51 +8,45 @@ import {
   MenuFoldOutlined,
   MenuUnfoldOutlined,
 } from "@ant-design/icons";
-import Products from "../component/Products"; 
-import type { MenuProps } from "antd"; 
+import type { MenuProps } from "antd";
 
 const { Sider, Header, Content } = Layout;
 
-type MenuItem = Required<MenuProps>["items"][number]; 
+type MenuItem = Required<MenuProps>["items"][number];
 
 const items: MenuItem[] = [
-  { key: "1", icon: <PieChartOutlined />, label: "Dashboard" },
-  { key: "2", icon: <DesktopOutlined />, label: "Products" },
-  { key: "3", icon: <ContainerOutlined />, label: "Orders" },
+  { key: "1", icon: <PieChartOutlined />, label: <Link to="/dashboard">Dashboard</Link> },
+  { key: "2", icon: <DesktopOutlined />, label: <Link to="/dashboard/products">Products</Link> },
+  { key: "3", icon: <ContainerOutlined />, label: <Link to="/dashboard/orders">Orders</Link> },
 ];
 
 const Dashboard: React.FC = () => {
-  const [collapsed, setCollapsed] = useState(false); 
-  const [selectedMenu, setSelectedMenu] = useState("1"); 
-  const toggleCollapsed = () => {
-    setCollapsed(!collapsed); 
-  };
-
-  const handleMenuClick = (key: string) => {
-    setSelectedMenu(key); 
-  };
+  const [collapsed, setCollapsed] = useState(false);
+  const toggleCollapsed = () => setCollapsed(!collapsed);
 
   return (
     <Layout style={{ height: "150vh" }}>
+      {/* Sidebar Trang */}
       <Sider collapsible collapsed={collapsed} onCollapse={toggleCollapsed}>
         <Menu
           theme="dark"
           mode="inline"
-          selectedKeys={[selectedMenu]}
-          onClick={(e) => handleMenuClick(e.key)}
+          defaultSelectedKeys={["1"]}
           inlineCollapsed={collapsed}
           items={items}
         />
       </Sider>
 
+      {/* Main Layout Trang */}
       <Layout>
+        {/* Header Trang */}
         <Header
           style={{
             backgroundColor: "#fff",
             textAlign: "left",
             padding: "0 20px",
             display: "flex",
-            justifyContent: "space-between", 
+            justifyContent: "space-between",
             alignItems: "center",
           }}
         >
@@ -67,7 +62,7 @@ const Dashboard: React.FC = () => {
             <a
               href="/"
               onClick={() => {
-                localStorage.removeItem("token"); 
+                localStorage.removeItem("token");
               }}
             >
               Đăng xuất
@@ -75,16 +70,9 @@ const Dashboard: React.FC = () => {
           </span>
         </Header>
 
-        <Content
-          style={{
-            margin: 20,
-            minHeight: 80,
-          }}
-        >
-          <h1>Dashboard Login - Dũng Mihn</h1>
-          {selectedMenu === "1" && <div>Welcome to the Dashboard!</div>}
-          {selectedMenu === "2" && <Products />} 
-          {selectedMenu === "3" && <div>Orders</div>}
+        {/* Nội dung chính của Page */}
+        <Content style={{ margin: 20, minHeight: 80 }}>
+          <Outlet /> 
         </Content>
       </Layout>
     </Layout>
