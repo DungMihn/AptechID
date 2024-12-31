@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import { Table, Button, Space, notification, Modal, Form, Input } from "antd";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import axios from "axios";
+import Filter from "./Filter"; // Tách riêng bộ lọc
 
 type Product = {
   id: number;
@@ -16,8 +17,15 @@ type Product = {
   images: string[];
 };
 
-const fetchProducts = async (offset: number): Promise<{ products: Product[]; total: number }> => {
-  const response = await axios.get(`https://api.escuelajs.co/api/v1/products?offset=${offset}&limit=10`);
+
+const fetchProducts = async (filters: { title?: string; categoryId?: number; price_min?: number; price_max?: number }, offset: number): Promise<{ products: Product[]; total: number }> => {
+  const params = new URLSearchParams({ offset: offset.toString(), limit: "10" });
+  if (filters.title) params.append("title", filters.title);
+  if (filters.categoryId) params.append("categoryId", filters.categoryId.toString());
+  if (filters.price_min) params.append("price_min", filters.price_min.toString());
+  if (filters.price_max) params.append("price_max", filters.price_max.toString());
+
+  const response = await axios.get(`https://api.escuelajs.co/api/v1/products?${params.toString()}`);
   return { products: response.data, total: 200 };
 };
 
@@ -30,9 +38,10 @@ const Products: React.FC = () => {
   const [editForm] = Form.useForm();
   const queryClient = useQueryClient();
 
+  const [filters, setFilters] = useState<{ title?: string; categoryId?: number; price_min?: number; price_max?: number }>({});
   const { data, isLoading } = useQuery({
-    queryKey: ["products", currentPage],
-    queryFn: () => fetchProducts((currentPage - 1) * 10),
+    queryKey: ["products", currentPage, filters],
+    queryFn: () => fetchProducts(filters, (currentPage - 1) * 10),
   });
 
   const addMutation = useMutation({
@@ -61,7 +70,8 @@ const Products: React.FC = () => {
   });
 
   const deleteMutation = useMutation({
-    mutationFn: (id: number) => axios.delete(`https://api.escuelajs.co/api/v1/products/${id}`),
+    mutationFn: (id: number) =>
+      axios.delete(`https://api.escuelajs.co/api/v1/products/${id}`),
     onSuccess: () => {
       notification.success({ message: "Product deleted successfully" });
       queryClient.invalidateQueries({ queryKey: ["products"] });
@@ -112,8 +122,15 @@ const Products: React.FC = () => {
     },
   ];
 
+  const handleFilterChange = (changedFilters: Partial<typeof filters>) => {
+    setFilters((prev) => ({ ...prev, ...changedFilters }));
+    setCurrentPage(1);
+  };
+
   return (
     <div>
+      <Filter onFilterChange={handleFilterChange} />
+      
       <Button type="primary" onClick={() => setIsAddModalOpen(true)} style={{ marginBottom: 20 }}>
         Add Product
       </Button>
