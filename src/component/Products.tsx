@@ -64,6 +64,11 @@ const Products: React.FC = () => {
   }, []);
 
   const addMutation = useMutation({
+    //xử lý lỗi từ API khi thêm sản phẩm
+    onError: (error) => {
+      notification.error({ message: "Failed to add product", description: error.message });
+    },
+    
     mutationFn: (newProduct: Omit<Product, "id" | "category"> & { categoryId: number }) =>
       axios.post("https://api.escuelajs.co/api/v1/products", {
         ...newProduct,
@@ -97,14 +102,36 @@ const Products: React.FC = () => {
     },
   });
 
+  // const handleAddSubmit = (values: any) => {
+  //   addMutation.mutate({
+  //     ...values,
+  //     description: values.description,
+  //     categoryId: values.categoryId,
+  //     images: [values.images],
+  //   });
+  // };
+
   const handleAddSubmit = (values: any) => {
+    // Kiểm tra giá trị images ban đầu
+    console.log('Raw images input:', values.images);
+  
+    // Tách chuỗi images thành mảng các URL
+    const imageArray = values.images
+      .split(",")  // Tách chuỗi thành các phần tử
+      .map((url: string) => url.trim()) // Loại bỏ khoảng trắng thừa
+      .map((url: string) => url.replace(/["[\]]/g, '')) // Loại bỏ dấu ngoặc kép và dấu ngoặc vuông
+  
+    // In giá trị mảng images sau khi xử lý
+    console.log('Processed image URLs array:', imageArray);
+  
+    // Truyền images dưới dạng mảng URL
     addMutation.mutate({
       ...values,
       description: values.description,
       categoryId: values.categoryId,
-      images: [values.images],
+      images: imageArray,  // Truyền mảng URL thực tế
     });
-  };
+  };  
 
   const handleEditSubmit = (values: { title: string; price: number }) => {
     if (editingProduct) {
@@ -118,6 +145,7 @@ const Products: React.FC = () => {
 
   const openEditModal = (product: Product) => {
     setEditingProduct(product);
+    console.log(product?.images)
     editForm.setFieldsValue({
       title: product.title,
       price: product.price,
@@ -130,8 +158,12 @@ const Products: React.FC = () => {
 
   const columns = [
     { title: "Title", dataIndex: "title", key: "title" },
-    { title: "Price", dataIndex: "price", key: "price" },
-    { title: "Category", dataIndex: ["category", "name"], key: "category" },
+    { title: "Price", dataIndex: "price", key: "price",
+      // Hiển thị đơn vị tiền tệ
+    render: (price: number) => `${price.toLocaleString()} USD`,
+    align: "right" as const, // Sử dụng kiểu cụ thể của antd và căn phải tiền để dễ so sánh
+     },
+    { title: "Category", dataIndex: ["category", "name"], key: "category"},
     {
       title: "Actions",
       key: "actions",
@@ -212,16 +244,45 @@ const Products: React.FC = () => {
               }))}
             />
           </Form.Item>
-          <Form.Item
+          {/* <Form.Item
             label="Image URL"
             name="images"
             rules={[{ required: true, message: "Please enter an image URL" }]}
           >
             <Input />
+          </Form.Item> */}
+          <Form.Item
+            label="Image URLs"
+            name="images"
+            rules={[
+              { required: true, message: "Please enter at least one image URL" },
+              {
+                validator: (_, value) => {
+                  if (!value || typeof value !== "string") {
+                    return Promise.reject(new Error("Please enter valid URLs"));
+                  }
+
+                  // Tách danh sách URL từ chuỗi và kiểm tra từng URL
+                  const urls = value.split(",").map((url: string) => url.trim());
+
+                  // Kiểm tra định dạng URL hợp lệ (chỉ hỗ trợ các định dạng ảnh phổ biến)
+                  const isValid = urls.every((url: string) =>
+                    /^https?:\/\/.*\.(jpeg|jpg|gif|png)$/i.test(url)
+                  );
+
+                  return isValid
+                    ? Promise.resolve()
+                    : Promise.reject(
+                        new Error("Each URL must be a valid image link (e.g., https://example.com/image.png)")
+                      );
+                },
+              },
+            ]}
+          >
+            <Input.TextArea placeholder="Enter image URLs, separated by commas" />
           </Form.Item>
         </Form>
       </Modal>
-
       {/* Edit Modal */}
       <Modal
         title="Edit Product"

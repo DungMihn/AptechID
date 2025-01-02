@@ -1,11 +1,11 @@
-import React from "react";
+import React, { useState } from "react";
 import { Form, Input, Button, Checkbox, message } from "antd";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
 
 const Login: React.FC = () => {
   const navigate = useNavigate();
-
+  const [loading] = useState(false);
   const onFinish = async (values: { email: string; password: string }) => {
   try {
       const response = await axios.post(
@@ -47,13 +47,30 @@ const Login: React.FC = () => {
       <Form name="login" onFinish={onFinish}>
         <Form.Item
           name="email"
-          rules={[{ required: true, message: "Vui lòng nhập Email!" }]}
+          // rules={[{ required: true, message: "Vui lòng nhập Email!" }]}
+          //Quản lý email đầu vào thủ công chặt chẽ hơn, bên dưới type="email"
+          rules={[
+            { required: true, message: "Vui lòng nhập Email!" },
+            {
+              pattern: /^[^\s@]+@[^\s@]+\.[^\s@]+$/,
+              message: "Email không hợp lệ!",
+            },
+          ]}
         >
           <Input type="email" placeholder="Email" />
         </Form.Item>
         <Form.Item
           name="password"
           rules={[{ required: true, message: "Vui lòng nhập mật khẩu!" }]}
+          // Quản lý mật khẩu chặt chẽ hơn, nhưng do API MK không đảm bảo nên không dùng
+          // rules={[
+          //   { required: true, message: "Vui lòng nhập mật khẩu!" },
+          //   {
+          //     pattern: /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/,
+          //     message:
+          //       "Mật khẩu phải ít nhất 8 ký tự, bao gồm chữ hoa, chữ thường, số và ký tự đặc biệt!",
+          //   },
+          // ]}
         >
           <Input.Password placeholder="Password" />
         </Form.Item>
@@ -61,11 +78,11 @@ const Login: React.FC = () => {
           <Checkbox>Remember me</Checkbox>
         </Form.Item>
         <Form.Item>
-          <Button type="primary" htmlType="submit" block>
+          <Button type="primary" htmlType="submit" block loading={loading}>
             Login
           </Button>
         </Form.Item>
-      </Form>
+      </Form> 
     </div>
   );
 };
